@@ -1,0 +1,26 @@
+{
+  "common": {
+    "app_name": "CashFlow",
+    "ok": "OK",
+    "cancel": "Avbryt",
+    "loading": "Laster...",
+    "error": "Feil",
+    "success": "Suksess"
+  },
+  "home": {
+    "welcome": "Velkommen til CashFlow",
+    "subtitle": "Din intelligente regnskapsløsning",
+    "theme": "Tema",
+    "dark_mode_active": "Mørk modus aktiv",
+    "light_mode_active": "Lys modus aktiv",
+    "switch_to_light": "Bytt til lys modus",
+    "switch_to_dark": "Bytt til mørk modus"
+  },
+  "auth": {
+    "login": "Logg inn",
+    "logout": "Logg ut",
+    "email": "E-post",
+    "password": "Passord"
+  }
+}
+

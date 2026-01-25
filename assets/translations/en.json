@@ -1,0 +1,26 @@
+{
+  "common": {
+    "app_name": "CashFlow",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "home": {
+    "welcome": "Welcome to CashFlow",
+    "subtitle": "Your intelligent accounting solution",
+    "theme": "Theme",
+    "dark_mode_active": "Dark mode active",
+    "light_mode_active": "Light mode active",
+    "switch_to_light": "Switch to light mode",
+    "switch_to_dark": "Switch to dark mode"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password"
+  }
+}
+
