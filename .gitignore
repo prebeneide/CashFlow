@@ -46,3 +46,11 @@ app.*.map.json
 
 # Private planning files (not for GitHub)
 .cursor-plan/
+.cursor-rules/
+
+# Backend (NestJS)
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/coverage/
+backend/*.log

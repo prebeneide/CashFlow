@@ -54,6 +54,10 @@ dependencies:
   # Modern typography
   google_fonts: ^6.1.0
 
+  # File picking
+  file_picker: ^8.0.0+1
+  image_picker: ^1.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

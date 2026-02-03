@@ -1,6 +1,6 @@
 # CashFlow
 
-AI-basert regnskapssystem for små og mellomstore bedrifter.
+Moderne regnskapssystem for små og mellomstore bedrifter.
 
 ## Teknologi
 

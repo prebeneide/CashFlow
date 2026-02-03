@@ -19,8 +19,17 @@
   "auth": {
     "login": "Logg inn",
     "logout": "Logg ut",
+    "signup": "Opprett konto",
     "email": "E-post",
-    "password": "Passord"
+    "password": "Passord",
+    "confirm_password": "Bekreft passord",
+    "phone_number": "Telefonnummer",
+    "username": "Brukernavn",
+    "date_of_birth": "Fødselsdato",
+    "welcome_back": "Velkommen tilbake",
+    "login_with": "Logg inn med email, telefonnummer eller brukernavn",
+    "no_account": "Har du ikke konto? Opprett en her",
+    "create_account": "Opprett konto"
   }
 }
 
