@@ -21,7 +21,7 @@ export class AiService {
     language: string = 'nb',
   ): Promise<string> {
     if (!this.openai) {
-      return 'AI-tjenesten er ikke tilgjengelig. Vennligst kontakt support.';
+      return 'Tjenesten er ikke tilgjengelig. Vennligst kontakt support.';
     }
 
     const prompt = `Du er en hjelpsom regnskapsassistent som hjelper norske bedriftseiere med å sette opp regnskapssystemet sitt.
@@ -75,7 +75,7 @@ Hold svaret kort og konsist (maks 200 ord). Skriv på norsk.`;
   ): Promise<{ response: string; suggestions?: any[] }> {
     if (!this.openai) {
       return {
-        response: 'AI-tjenesten er ikke tilgjengelig. Vennligst kontakt support.',
+        response: 'Tjenesten er ikke tilgjengelig. Vennligst kontakt support.',
       };
     }
 
@@ -106,7 +106,7 @@ Hold svaret kort og konsist (maks 200 ord). Skriv på norsk.`;
     const currentStepName = stepNames[currentStep] || `Steg ${currentStep + 1}`;
 
     const contextString = `
-Du er en hjelpsom og vennlig AI-regnskapsassistent som hjelper norske bedriftseiere med å sette opp regnskapssystemet sitt gjennom en naturlig chat-dialog.
+Du er en hjelpsom og vennlig regnskapsassistent som hjelper norske bedriftseiere med å sette opp regnskapssystemet sitt gjennom en naturlig chat-dialog.
 
 Nåværende situasjon:
 - Nåværende steg: ${currentStepName} (${currentStep + 1}/${totalSteps})
@@ -136,7 +136,7 @@ Viktig:
 Skriv på norsk.
 `;
 
-    const systemPrompt = `Du er en hjelpsom og vennlig AI-regnskapsassistent. Du hjelper norske bedriftseiere med å sette opp regnskapssystemet sitt gjennom en naturlig chat-dialog. Du husker hele samtalehistorikken og kan svare på spørsmål basert på hva brukeren har sagt tidligere.`;
+    const systemPrompt = `Du er en hjelpsom og vennlig regnskapsassistent. Du hjelper norske bedriftseiere med å sette opp regnskapssystemet sitt gjennom en naturlig chat-dialog. Du husker hele samtalehistorikken og kan svare på spørsmål basert på hva brukeren har sagt tidligere.`;
 
     // Bygg meldinger-array med chat-historikk
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [

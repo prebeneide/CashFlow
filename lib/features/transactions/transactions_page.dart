@@ -24,7 +24,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Future<void> _loadTransactions() async {
-    setState(() => _isLoading = true);
+    if (!_isLoading || _transactions.isNotEmpty) {
+      setState(() => _isLoading = true);
+    }
     final transactions = await TransactionService.getTransactions(
       status: _selectedStatus,
     );
@@ -141,63 +143,74 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
               // Transactions list
               Expanded(
-                child: _isLoading
+                child: _isLoading && _transactions.isEmpty
                     ? const Center(child: CircularProgressIndicator())
-                    : _transactions.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.receipt_long,
-                                  size: 64,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.3),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Ingen transaksjoner',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.5),
+                    : RefreshIndicator(
+                        onRefresh: _loadTransactions,
+                        child: _transactions.isEmpty
+                            ? ListView(
+                                padding: const EdgeInsets.all(20),
+                                children: [
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height * 0.5,
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.receipt_long,
+                                            size: 64,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Ingen transaksjoner',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.5),
+                                                ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Transaksjoner vil vises her når du laster opp kvitteringer',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.4),
+                                                ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
                                       ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Transaksjoner vil vises her når du laster opp kvitteringer',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.4),
-                                      ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: _transactions.length,
-                            itemBuilder: (context, index) {
-                              final transaction = _transactions[index];
-                              return _TransactionCard(
-                                transaction: transaction,
-                                statusColor: _getStatusColor(transaction.status),
-                                statusIcon: _getStatusIcon(transaction.status),
-                              );
-                            },
-                          ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                itemCount: _transactions.length,
+                                itemBuilder: (context, index) {
+                                  final transaction = _transactions[index];
+                                  return _TransactionCard(
+                                    transaction: transaction,
+                                    statusColor: _getStatusColor(transaction.status),
+                                    statusIcon: _getStatusIcon(transaction.status),
+                                  );
+                                },
+                              ),
+                      ),
               ),
             ],
           ),
