@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/transaction_service.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/theme/colors.dart';
@@ -108,6 +109,173 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _openDocument() async {
+    if (_transaction?.documentFilePath == null) return;
+
+    try {
+      // Hent signed URL for dokumentet
+      final signedUrl = await SupabaseService.client.storage
+          .from('documents')
+          .createSignedUrl(_transaction!.documentFilePath!, 3600);
+
+      // Åpne URL i nettleser/app
+      final uri = Uri.parse(signedUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kunne ikke åpne dokumentet'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Feil ved åpning av dokument: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatCurrency(dynamic value) {
+    if (value == null) return '-';
+    if (value is num) {
+      return '${value.toStringAsFixed(2)} kr';
+    }
+    return value.toString();
+  }
+
+  List<Widget> _buildAnalysisFields(BuildContext context, Map<String, dynamic> analysis) {
+    final fields = <Widget>[];
+    final fieldLabels = {
+      'amount': 'Beløp',
+      'description': 'Beskrivelse',
+      'vendor': 'Leverandør',
+      'date': 'Dato',
+      'category': 'Kategori',
+      'account': 'Konto',
+      'vat_amount': 'MVA-beløp',
+      'total_amount': 'Totalt beløp',
+    };
+
+    // Vis viktige felter først
+    final priorityFields = ['amount', 'description', 'vendor', 'date', 'total_amount'];
+    for (final key in priorityFields) {
+      if (analysis.containsKey(key) && analysis[key] != null) {
+        final value = analysis[key];
+        if (value.toString().isNotEmpty) {
+          fields.add(_InfoRow(
+            label: fieldLabels[key] ?? key,
+            value: key.contains('amount') ? _formatCurrency(value) : value.toString(),
+          ));
+          fields.add(const SizedBox(height: 12));
+        }
+      }
+    }
+
+    // Vis resten av feltene
+    for (final entry in analysis.entries) {
+      if (!priorityFields.contains(entry.key) && 
+          entry.value != null && 
+          entry.value.toString().isNotEmpty) {
+        fields.add(_InfoRow(
+          label: fieldLabels[entry.key] ?? entry.key,
+          value: entry.key.contains('amount') 
+              ? _formatCurrency(entry.value) 
+              : entry.value.toString(),
+        ));
+        fields.add(const SizedBox(height: 12));
+      }
+    }
+
+    // Fjern siste SizedBox hvis det finnes
+    if (fields.isNotEmpty && fields.last is SizedBox) {
+      fields.removeLast();
+    }
+
+    return fields.isEmpty 
+        ? [
+            Text(
+              'Ingen detaljer tilgjengelig',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
+                  ),
+            ),
+          ]
+        : fields;
+  }
+
+  List<Widget> _buildUserChoicesFields(BuildContext context, Map<String, dynamic> userChoices) {
+    final fields = <Widget>[];
+    final fieldLabels = {
+      'category': 'Kategori',
+      'account': 'Konto',
+      'vendor': 'Leverandør',
+      'description': 'Beskrivelse',
+      'amount': 'Beløp',
+      'vat_amount': 'MVA-beløp',
+      'date': 'Dato',
+      'notes': 'Notater',
+      'tags': 'Tagger',
+    };
+
+    // Vis alle felter fra userChoices
+    for (final entry in userChoices.entries) {
+      if (entry.value != null && entry.value.toString().isNotEmpty) {
+        final value = entry.value;
+        String displayValue;
+        
+        // Håndter spesielle typer
+        if (value is List) {
+          displayValue = value.join(', ');
+        } else if (value is Map) {
+          displayValue = value.entries
+              .map((e) => '${e.key}: ${e.value}')
+              .join(', ');
+        } else if (entry.key.contains('amount')) {
+          displayValue = _formatCurrency(value);
+        } else {
+          displayValue = value.toString();
+        }
+
+        fields.add(_InfoRow(
+          label: fieldLabels[entry.key] ?? entry.key,
+          value: displayValue,
+        ));
+        fields.add(const SizedBox(height: 12));
+      }
+    }
+
+    // Fjern siste SizedBox hvis det finnes
+    if (fields.isNotEmpty && fields.last is SizedBox) {
+      fields.removeLast();
+    }
+
+    return fields.isEmpty 
+        ? [
+            Text(
+              'Ingen brukervalg registrert',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
+                  ),
+            ),
+          ]
+        : fields;
   }
 
   @override
@@ -349,9 +517,65 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              icon: const Icon(Icons.open_in_new),
+                                              color: AppColors.primary,
+                                              iconSize: 20,
+                                              onPressed: () => _openDocument(),
+                                              tooltip: 'Åpne dokument',
+                                            ),
                                           ],
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+
+                              // Transaksjonsdetaljer fra analyse
+                              if (_transaction!.aiAnalysis.isNotEmpty) ...[
+                                GlassCard(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Transaksjonsdetaljer',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ..._buildAnalysisFields(context, _transaction!.aiAnalysis),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+
+                              // Brukervalg
+                              if (_transaction!.userChoices.isNotEmpty) ...[
+                                GlassCard(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Brukervalg',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ..._buildUserChoicesFields(context, _transaction!.userChoices),
                                     ],
                                   ),
                                 ),

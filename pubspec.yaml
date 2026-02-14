@@ -57,6 +57,9 @@ dependencies:
   # File picking
   file_picker: ^8.0.0+1
   image_picker: ^1.0.7
+  
+  # URL launcher
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

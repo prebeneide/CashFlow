@@ -14,13 +14,28 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   List<Transaction> _transactions = [];
+  List<Transaction> _filteredTransactions = [];
   bool _isLoading = true;
   String? _selectedStatus;
+  final TextEditingController _searchController = TextEditingController();
+  bool _hasSearchText = false;
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _hasSearchText = _searchController.text.isNotEmpty;
+      });
+      _filterTransactions();
+    });
     _loadTransactions();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
@@ -35,7 +50,57 @@ class _TransactionsPageState extends State<TransactionsPage> {
         _transactions = transactions;
         _isLoading = false;
       });
+      _filterTransactions();
     }
+  }
+
+  void _filterTransactions() {
+    final searchQuery = _searchController.text.toLowerCase().trim();
+    
+    if (searchQuery.isEmpty) {
+      setState(() {
+        _filteredTransactions = _transactions;
+      });
+      return;
+    }
+
+    setState(() {
+      _filteredTransactions = _transactions.where((transaction) {
+        // Søk i status label
+        if (transaction.statusLabel.toLowerCase().contains(searchQuery)) {
+          return true;
+        }
+
+        // Søk i aiAnalysis
+        for (final entry in transaction.aiAnalysis.entries) {
+          final value = entry.value.toString().toLowerCase();
+          if (value.contains(searchQuery)) {
+            return true;
+          }
+        }
+
+        // Søk i userChoices
+        for (final entry in transaction.userChoices.entries) {
+          final value = entry.value.toString().toLowerCase();
+          if (value.contains(searchQuery)) {
+            return true;
+          }
+        }
+
+        // Søk i filnavn
+        if (transaction.documentFilePath != null) {
+          final fileName = transaction.documentFilePath!
+              .split('/')
+              .last
+              .toLowerCase();
+          if (fileName.contains(searchQuery)) {
+            return true;
+          }
+        }
+
+        return false;
+      }).toList();
+    });
   }
 
   Color _getStatusColor(String status) {
@@ -94,9 +159,50 @@ class _TransactionsPageState extends State<TransactionsPage> {
         child: SafeArea(
           child: Column(
             children: [
+              // Søkefelt
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Søk i transaksjoner...',
+                      border: InputBorder.none,
+                      icon: Icon(
+                        Icons.search,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                        size: 20,
+                      ),
+                      suffixIcon: _hasSearchText
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ),
               // Filter chips
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -147,7 +253,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
                         onRefresh: _loadTransactions,
-                        child: _transactions.isEmpty
+                        child: _filteredTransactions.isEmpty && _transactions.isNotEmpty
                             ? ListView(
                                 padding: const EdgeInsets.all(20),
                                 children: [
@@ -158,7 +264,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Icon(
-                                            Icons.receipt_long,
+                                            Icons.search_off,
                                             size: 64,
                                             color: Theme.of(context)
                                                 .colorScheme
@@ -167,7 +273,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'Ingen transaksjoner',
+                                            'Ingen resultater',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleMedium
@@ -180,7 +286,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'Transaksjoner vil vises her når du laster opp kvitteringer',
+                                            'Prøv et annet søkeord',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
@@ -198,18 +304,69 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                   ),
                                 ],
                               )
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                itemCount: _transactions.length,
-                                itemBuilder: (context, index) {
-                                  final transaction = _transactions[index];
-                                  return _TransactionCard(
-                                    transaction: transaction,
-                                    statusColor: _getStatusColor(transaction.status),
-                                    statusIcon: _getStatusIcon(transaction.status),
-                                  );
-                                },
-                              ),
+                            : _filteredTransactions.isEmpty
+                                ? ListView(
+                                    padding: const EdgeInsets.all(20),
+                                    children: [
+                                      SizedBox(
+                                        height: MediaQuery.of(context).size.height * 0.5,
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.receipt_long,
+                                                size: 64,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Ingen transaksjoner',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.5),
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Transaksjoner vil vises her når du laster opp kvitteringer',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.4),
+                                                    ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    itemCount: _filteredTransactions.length,
+                                    itemBuilder: (context, index) {
+                                      final transaction = _filteredTransactions[index];
+                                      return _TransactionCard(
+                                        transaction: transaction,
+                                        statusColor: _getStatusColor(transaction.status),
+                                        statusIcon: _getStatusIcon(transaction.status),
+                                      );
+                                    },
+                                  ),
                       ),
               ),
             ],
