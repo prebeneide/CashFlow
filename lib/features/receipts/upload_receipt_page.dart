@@ -23,6 +23,7 @@ class _UploadReceiptPageState extends State<UploadReceiptPage> {
   File? _selectedFile;
   Uint8List? _selectedFileBytes; // For web
   bool _isUploading = false;
+  String? _uploadStatus = '';
   String? _errorMessage;
   String? _fileName;
 
@@ -109,10 +110,17 @@ class _UploadReceiptPageState extends State<UploadReceiptPage> {
     setState(() {
       _isUploading = true;
       _errorMessage = null;
+      _uploadStatus = 'Laster opp fil...';
     });
 
     try {
       // Last opp dokument
+      if (mounted) {
+        setState(() {
+          _uploadStatus = 'Laster opp fil...';
+        });
+      }
+      
       final document = await DocumentService.uploadDocument(
         file: _selectedFile,
         fileBytes: _selectedFileBytes,
@@ -123,6 +131,12 @@ class _UploadReceiptPageState extends State<UploadReceiptPage> {
       );
 
       // Opprett transaksjon
+      if (mounted) {
+        setState(() {
+          _uploadStatus = 'Oppretter transaksjon...';
+        });
+      }
+      
       final company = await CompanyService.getCurrentCompany();
       if (company == null) {
         throw Exception('Ingen bedriftsprofil funnet');
@@ -135,6 +149,12 @@ class _UploadReceiptPageState extends State<UploadReceiptPage> {
         'ai_analysis': {},
         'user_choices': {},
       });
+      
+      if (mounted) {
+        setState(() {
+          _uploadStatus = 'Fullført!';
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -496,13 +516,26 @@ class _UploadReceiptPageState extends State<UploadReceiptPage> {
                       disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
                     ),
                     child: _isUploading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _uploadStatus ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           )
                         : const Text(
                             'Last opp kvittering',

@@ -7,6 +7,7 @@ import '../../features/onboarding/hybrid_onboarding_page.dart';
 import '../../features/transactions/transactions_page.dart';
 import '../../features/transactions/transaction_detail_page.dart';
 import '../../features/receipts/upload_receipt_page.dart';
+import '../../features/company/company_profile_page.dart';
 import '../../core/services/supabase_service.dart';
 
 final appRouter = GoRouter(
@@ -77,6 +78,11 @@ final appRouter = GoRouter(
       path: '/upload-receipt',
       name: 'upload-receipt',
       builder: (context, state) => const UploadReceiptPage(),
+    ),
+    GoRoute(
+      path: '/company-profile',
+      name: 'company-profile',
+      builder: (context, state) => const CompanyProfilePage(),
     ),
   ],
 );

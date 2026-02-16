@@ -146,6 +146,15 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     }
   }
 
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _FullScreenImagePage(imageUrl: imageUrl),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
   String _formatCurrency(dynamic value) {
     if (value == null) return '-';
     if (value is num) {
@@ -399,61 +408,64 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                       if (_imageUrl != null)
-                                        ClipRRect(
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(16),
-                                            topRight: Radius.circular(16),
-                                          ),
-                                          child: Image.network(
-                                            _imageUrl!,
-                                            fit: BoxFit.contain,
-                                            loadingBuilder:
-                                                (context, child, loadingProgress) {
-                                              if (loadingProgress == null) {
-                                                return child;
-                                              }
-                                              return Container(
-                                                height: 400,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey
-                                                      .withValues(alpha: 0.1),
-                                                ),
-                                                child: const Center(
-                                                  child: CircularProgressIndicator(),
-                                                ),
-                                              );
-                                            },
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                              return Container(
-                                                height: 200,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey
-                                                      .withValues(alpha: 0.1),
-                                                ),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.center,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.error_outline,
-                                                        size: 48,
-                                                        color: Colors.grey
-                                                            .withValues(alpha: 0.5),
-                                                      ),
-                                                      const SizedBox(height: 8),
-                                                      Text(
-                                                        'Kunne ikke laste bilde',
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .bodySmall,
-                                                      ),
-                                                    ],
+                                        GestureDetector(
+                                          onTap: () => _showFullScreenImage(context, _imageUrl!),
+                                          child: ClipRRect(
+                                            borderRadius: const BorderRadius.only(
+                                              topLeft: Radius.circular(16),
+                                              topRight: Radius.circular(16),
+                                            ),
+                                            child: Image.network(
+                                              _imageUrl!,
+                                              fit: BoxFit.contain,
+                                              loadingBuilder:
+                                                  (context, child, loadingProgress) {
+                                                if (loadingProgress == null) {
+                                                  return child;
+                                                }
+                                                return Container(
+                                                  height: 400,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey
+                                                        .withValues(alpha: 0.1),
                                                   ),
-                                                ),
-                                              );
-                                            },
+                                                  child: const Center(
+                                                    child: CircularProgressIndicator(),
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Container(
+                                                  height: 200,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey
+                                                        .withValues(alpha: 0.1),
+                                                  ),
+                                                  child: Center(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.error_outline,
+                                                          size: 48,
+                                                          color: Colors.grey
+                                                              .withValues(alpha: 0.5),
+                                                        ),
+                                                        const SizedBox(height: 8),
+                                                        Text(
+                                                          'Kunne ikke laste bilde',
+                                                          style: Theme.of(context)
+                                                              .textTheme
+                                                              .bodySmall,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                           ),
                                         )
                                       else if (_transaction!.documentFileType ==
@@ -628,6 +640,73 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                             ],
                           ),
                         ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenImagePage extends StatelessWidget {
+  final String imageUrl;
+
+  const _FullScreenImagePage({
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Bildeforhåndsvisning',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) {
+                return child;
+              }
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Kunne ikke laste bilde',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Lukk'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

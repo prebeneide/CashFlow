@@ -23,6 +23,8 @@ class _DashboardPageState extends State<DashboardPage> {
     'ready_to_book': 0,
     'booked': 0,
   };
+  List<Transaction> _recentTransactions = [];
+  bool _recentLoading = false;
 
   @override
   void initState() {
@@ -41,7 +43,19 @@ class _DashboardPageState extends State<DashboardPage> {
         context.go('/onboarding');
       } else {
         _loadTransactionCounts();
+        _loadRecentTransactions();
       }
+    }
+  }
+
+  Future<void> _loadRecentTransactions() async {
+    setState(() => _recentLoading = true);
+    final list = await TransactionService.getTransactions(limit: 5);
+    if (mounted) {
+      setState(() {
+        _recentTransactions = list;
+        _recentLoading = false;
+      });
     }
   }
 
@@ -51,6 +65,38 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         _transactionCounts = counts;
       });
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'NEW':
+        return AppColors.primary;
+      case 'NEEDS_INFO':
+      case 'NEEDS_USER_CHOICE':
+        return Colors.orange;
+      case 'READY_TO_BOOK':
+        return Colors.green;
+      case 'BOOKED':
+        return AppColors.secondary;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'NEW':
+        return Icons.receipt_long;
+      case 'NEEDS_INFO':
+      case 'NEEDS_USER_CHOICE':
+        return Icons.pending_actions;
+      case 'READY_TO_BOOK':
+        return Icons.check_circle;
+      case 'BOOKED':
+        return Icons.account_balance;
+      default:
+        return Icons.receipt;
     }
   }
 
@@ -127,8 +173,14 @@ class _DashboardPageState extends State<DashboardPage> {
               : AppColors.backgroundGradientLight,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await _loadTransactionCounts();
+              await _loadRecentTransactions();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -201,6 +253,55 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
                 const SizedBox(height: 24),
+
+                // Siste transaksjoner
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Siste transaksjoner',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/transactions'),
+                      child: const Text('Se alle'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_recentLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_recentTransactions.isEmpty)
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                    child: Center(
+                      child: Text(
+                        'Ingen transaksjoner ennå',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      children: _recentTransactions
+                          .map((t) => _RecentTransactionRow(
+                                transaction: t,
+                                statusColor: _getStatusColor(t.status),
+                                statusIcon: _getStatusIcon(t.status),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                const SizedBox(height: 24),
                 
                 // Handlingsknapper
                 Text(
@@ -236,12 +337,86 @@ class _DashboardPageState extends State<DashboardPage> {
                   title: 'Bedriftsprofil',
                   subtitle: 'Administrer bedriftsinformasjon',
                   onTap: () {
-                    // TODO: Implementer bedriftsprofil
+                    context.push('/company-profile');
                   },
                 ),
               ],
             ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentTransactionRow extends StatelessWidget {
+  final Transaction transaction;
+  final Color statusColor;
+  final IconData statusIcon;
+
+  const _RecentTransactionRow({
+    required this.transaction,
+    required this.statusColor,
+    required this.statusIcon,
+  });
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    if (difference.inDays == 0) return 'i dag';
+    if (difference.inDays == 1) return 'i går';
+    if (difference.inDays < 7) return '${difference.inDays} dager siden';
+    return '${date.day}.${date.month}.${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/transaction/${transaction.id}'),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(statusIcon, color: statusColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.statusLabel,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    _formatDate(transaction.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 11,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ],
         ),
       ),
     );
